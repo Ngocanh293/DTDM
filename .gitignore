@@ -1,0 +1,74 @@
+# =========================
+# Operating System Files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# =========================
+# IDEs and Editors
+# =========================
+.idea/
+.vscode/
+*.swp
+*.iml
+*.iws
+.apt_generated/
+.settings/
+.classpath
+.project
+
+# =========================
+# Backend (Spring Boot / Java)
+# =========================
+backend/target/
+backend/bin/
+backend/logs/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+*.log
+
+# Bỏ qua file application.yml nếu nhạy cảm (tuỳ chọn)
+# backend/src/main/resources/application-secret.yml
+
+# =========================
+# Frontend (ReactJS / NodeJS)
+# =========================
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+backend/.env
+frontend/discount.js
+
+# =========================
+# Upload / Media Files
+# =========================
+uploads/
+backend/uploads/
+frontend/public/uploads/
+frontend/sepay-pg-node-1.0.0.tgz
+frontend/package/LICENSE
+frontend/package/README.md
+frontend/package/package.json

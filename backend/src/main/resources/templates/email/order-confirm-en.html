@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
+        .container { background-color: #ffffff; padding: 30px; border-radius: 8px; max-width: 600px; margin: auto; }
+        h2 { color: #007bff; }
+        p { color: #555; }
+        .details { background-color: #fafafa; padding: 15px; border-left: 4px solid #007bff; margin-top: 20px; font-weight: bold; }
+        .footer { margin-top: 20px; font-size: 12px; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Hello {{username}},</h2>
+        <p>Thank you for shopping at PCeStore! Your order has been successfully confirmed and is being prepared for shipping.</p>
+        <div class="details">
+            Order ID: #{{orderId}}<br>
+            Total Amount: {{totalAmount}}
+        </div>
+        <p>If you have any questions, please contact our support team.</p>
+        <div class="footer">This is an automated email, please do not reply.</div>
+    </div>
+</body>
+</html>

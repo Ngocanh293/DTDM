@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
+        .container { background-color: #ffffff; padding: 30px; border-radius: 8px; max-width: 600px; margin: auto; }
+        h2 { color: #007bff; }
+        p { color: #555; }
+        .details { background-color: #fafafa; padding: 15px; border-left: 4px solid #007bff; margin-top: 20px; font-weight: bold; }
+        .footer { margin-top: 20px; font-size: 12px; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Xin chào {{username}},</h2>
+        <p>Cảm ơn bạn đã mua sắm tại PCeStore! Đơn hàng của bạn đã được xác nhận thành công và đang được chuẩn bị để giao cho bộ phận vận chuyển.</p>
+        <div class="details">
+            Mã đơn hàng: #{{orderId}}<br>
+            Tổng tiền: {{totalAmount}}
+        </div>
+        <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với bộ phận hỗ trợ của chúng tôi.</p>
+        <div class="footer">Đây là email tự động, vui lòng không phản hồi.</div>
+    </div>
+</body>
+</html>

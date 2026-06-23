@@ -1,0 +1,55 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  mail:
+    host: localhost
+    port: 3025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+  cache:
+    type: caffeine
+    cache-names:
+      - login_buckets
+    caffeine:
+      spec: expireAfterWrite=1h,maximumSize=10000
+
+application:
+  security:
+    jwt:
+      secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      expiration: 3600000 # 1 hour
+      refresh-token:
+        expiration: 86400000 # 1 day
+
+custom:
+  security:
+    google:
+      client-id: mock-google-client-id
+
+bucket4j:
+  enabled: true
+  filters:
+    - cache-name: login_buckets
+      url: /api/auth/login
+      http-response-body: "{\"error\": \"Too Many Requests\", \"message\": \"Too Many Requests\"}"
+      rate-limits:
+        - bandwidths:
+            - capacity: 5
+              time: 1
+              unit: minutes

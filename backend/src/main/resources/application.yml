@@ -1,0 +1,81 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+
+  # Cấu hình kết nối cơ sở dữ liệu PostgreSQL từ file .env
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pcestore}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+
+  # Cấu hình JPA / Hibernate
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update # Tự động tạo hoặc cập nhật cấu trúc database dựa theo Entity
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Cấu hình Spring Mail
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+inventory:
+  low-stock-threshold: ${INVENTORY_LOW_STOCK_THRESHOLD:10}
+
+  # Cache được cấu hình qua CacheConfig.java (mỗi cache có TTL riêng)
+  # Không đặt spring.cache ở đây để tránh xung đột với registerCustomCache()
+
+# Cấu hình JWT cho Token từ file .env
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      expiration: ${JWT_EXPIRATION:900000}
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+# Cấu hình tuỳ chỉnh khác
+custom:
+  frontend:
+    url: ${FRONTEND_URL:${CLIENT_URL:${APP_URL:${NEXT_PUBLIC_BASE_URL:https://pc-e-store.vercel.app}}}}
+  mail:
+    from: ${MAIL_FROM:noreply@pcestore.com}
+  security:
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
+      redirect-uri: ${GOOGLE_REDIRECT_URI:}
+  storage:
+    avatars: ${AVATAR_STORAGE_PATH:uploads/avatars}
+
+# Cấu hình SePay payment gateway
+sepay:
+  merchant-id: ${SEPAY_MERCHANT_ID:sandbox_merchant}
+  secret-key: ${SEPAY_SECRET_KEY:sandbox_secret}
+  ipn-secret-key: ${SEPAY_IPN_SECRET_KEY:${SEPAY_SECRET_KEY:sandbox_secret}}
+  api-token: ${SEPAY_API_TOKEN:}
+
+# --- Cấu hình Rate Limiting (Bucket4j) ---
+# Note: Rate limiting thực tế được xử lý bởi RateLimitFilter.java + RateLimitService.java
+# Cấu hình dưới đây chỉ giữ lại cho tương thích với bucket4j-spring-boot-starter auto-config
+bucket4j:
+  enabled: false
+
+
