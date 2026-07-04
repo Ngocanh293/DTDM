@@ -37,9 +37,22 @@ import java.security.GeneralSecurityException;
 import java.sql.SQLException;
 import java.util.Base64;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class UserAuthenticationService {
+
+    @Value("${custom.serverless.qr-generator-url:}")
+    private String serverlessQrUrl;
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     private static final String ERROR_USER_NOT_FOUND = "error.auth.user_not_found";
     private static final String GOOGLE_SERVICE_NAME = "Google-OAuth2";
@@ -144,6 +157,33 @@ public class UserAuthenticationService {
     }
 
     private String generateQrCodeBase64(String content) {
+        // 1. Thử gọi Serverless AWS Lambda trước nếu có cấu hình URL
+        if (serverlessQrUrl != null && !serverlessQrUrl.isBlank()) {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                
+                Map<String, String> requestBody = new HashMap<>();
+                requestBody.put("text", content);
+                
+                HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
+                
+                ResponseEntity<Map> response = restTemplate.postForEntity(serverlessQrUrl, request, Map.class);
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    String qrCodeImage = (String) response.getBody().get("qrCodeImage");
+                    if (qrCodeImage != null && !qrCodeImage.isBlank()) {
+                        org.slf4j.LoggerFactory.getLogger(UserAuthenticationService.class)
+                            .info("[SERVERLESS] Sinh mã QR thành công từ AWS Lambda");
+                        return qrCodeImage;
+                    }
+                }
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(UserAuthenticationService.class)
+                    .error("[SERVERLESS] Gọi AWS Lambda lỗi: {}. Chuyển sang sinh QR nội bộ (Local Fallback).", e.getMessage());
+            }
+        }
+
+        // 2. Local Fallback: Dùng ZXing sinh QR cục bộ trên JVM
         try {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
             BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, 200, 200);

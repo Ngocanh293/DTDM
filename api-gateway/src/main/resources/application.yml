@@ -1,0 +1,53 @@
+server:
+  port: 8080
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+      routes:
+        # Route 1: Auth Login với Rate Limit nghiêm ngặt (10 req/s nạp lại, burst 20)
+        - id: auth-login-route
+          uri: ${BACKEND_URI:http://backend:8080}
+          predicates:
+            - Path=/api/v1/auth/login
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                key-resolver: "#{@ipKeyResolver}"
+
+        # Route 2: Quên mật khẩu và gửi lại OTP (3 req/phút -> xấp xỉ 0.05 req/s, burst 3)
+        - id: auth-forgot-password-route
+          uri: ${BACKEND_URI:http://backend:8080}
+          predicates:
+            - Path=/api/v1/auth/forgot-password, /api/v1/auth/resend-verification
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 3
+                key-resolver: "#{@ipKeyResolver}"
+
+        # Route 3: Toàn bộ API còn lại (Không giới hạn hoặc giới hạn chung 50 req/s)
+        - id: general-backend-route
+          uri: ${BACKEND_URI:http://backend:8080}
+          predicates:
+            - Path=/api/**

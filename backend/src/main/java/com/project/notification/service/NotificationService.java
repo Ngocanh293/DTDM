@@ -2,12 +2,15 @@ package com.project.notification.service;
 
 import com.project.auth.entity.User;
 import com.project.notification.dto.NotificationResponse;
+import com.project.notification.dto.NotificationEmailEvent;
 import com.project.notification.entity.Notification;
 import com.project.notification.entity.NotificationStatus;
 import com.project.notification.entity.NotificationType;
 import com.project.notification.repository.NotificationRepository;
+import com.project.common.config.RabbitMQConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,17 +32,20 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final MessageSource messageSource;
+    private final RabbitTemplate rabbitTemplate;
 
     public NotificationService(NotificationRepository notificationRepository, 
                                NotificationPreferenceRepository preferenceRepository,
                                UserRepository userRepository,
                                EmailService emailService,
-                               MessageSource messageSource) {
+                               MessageSource messageSource,
+                               RabbitTemplate rabbitTemplate) {
         this.notificationRepository = notificationRepository;
         this.preferenceRepository = preferenceRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.messageSource = messageSource;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public List<NotificationResponse> getUserNotifications(User user) {
@@ -48,13 +54,61 @@ public class NotificationService {
                 .toList();
     }
 
+    private void queueEmailNotification(Long notifId, String toEmail, String type, String language,
+                                        String token, String otpCode, String orderId, String totalAmount, 
+                                        String newEmail, String status, String subject, String content) {
+        NotificationEmailEvent event = NotificationEmailEvent.builder()
+                .notifId(notifId)
+                .toEmail(toEmail)
+                .type(type)
+                .language(language)
+                .token(token)
+                .otpCode(otpCode)
+                .orderId(orderId)
+                .totalAmount(totalAmount)
+                .newEmail(newEmail)
+                .status(status)
+                .subject(subject)
+                .content(content)
+                .build();
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NOTIFICATION, RabbitMQConfig.ROUTING_KEY_EMAIL, event);
+            logger.info("[NOTIFICATION] Đã đẩy email notification vào RabbitMQ Queue cho ID: {}, Type: {}", notifId, type);
+        } catch (Exception e) {
+            logger.error("[NOTIFICATION] Lỗi đẩy email notification vào RabbitMQ Queue cho ID: {}. Thử gửi trực tiếp qua EmailService làm fallback.", notifId, e);
+            // Fallback gửi trực tiếp nếu RabbitMQ sập để tránh mất thông báo
+            try {
+                if ("VERIFICATION".equals(type)) {
+                    emailService.sendVerificationEmail(toEmail, token, new Locale(language), notifId);
+                } else if ("EMAIL_CHANGE".equals(type)) {
+                    emailService.sendEmailChangeEmail(toEmail, token, new Locale(language), notifId);
+                } else if ("PASSWORD_RESET".equals(type)) {
+                    emailService.sendPasswordResetEmail(toEmail, token, new Locale(language), notifId);
+                } else if ("PASSWORD_CHANGE_OTP".equals(type)) {
+                    emailService.sendPasswordChangeOtpEmail(toEmail, otpCode, new Locale(language), notifId);
+                } else if ("ORDER_CONFIRM".equals(type)) {
+                    // Extract username from toEmail (fallback)
+                    emailService.sendOrderConfirmationEmail(toEmail, toEmail, orderId, totalAmount, new Locale(language), notifId);
+                } else if ("ORDER_STATUS_UPDATE".equals(type)) {
+                    emailService.sendOrderStatusUpdateEmail(toEmail, toEmail, orderId, status, new Locale(language), notifId);
+                } else if ("RAW_EMAIL".equals(type)) {
+                    emailService.sendRawEmailSync(toEmail, subject, content);
+                    markAsSent(notifId);
+                }
+            } catch (Exception ex) {
+                logger.error("[NOTIFICATION] Fallback gửi trực tiếp thất bại cho ID: {}", notifId, ex);
+                markAsFailed(notifId);
+            }
+        }
+    }
+
     @Transactional
     public void sendVerification(User user, String token, Locale locale) {
         sendIfEnabled(user, NotificationType.EMAIL_VERIFICATION, () -> {
             String content = messageSource.getMessage("notification.verification.content", null, locale);
             Notification notif = new Notification(user, NotificationType.EMAIL_VERIFICATION, content);
             notif = notificationRepository.save(notif);
-            emailService.sendVerificationEmail(user.getEmail(), token, locale, notif.getId());
+            queueEmailNotification(notif.getId(), user.getEmail(), "VERIFICATION", locale.getLanguage(), token, null, null, null, null, null, null, null);
         });
     }
 
@@ -64,7 +118,7 @@ public class NotificationService {
             String content = messageSource.getMessage("notification.email_change.content", new Object[]{newEmail}, locale);
             Notification notif = new Notification(user, NotificationType.EMAIL_CHANGE, content);
             notif = notificationRepository.save(notif);
-            emailService.sendEmailChangeEmail(newEmail, token, locale, notif.getId());
+            queueEmailNotification(notif.getId(), newEmail, "EMAIL_CHANGE", locale.getLanguage(), token, null, null, null, null, null, null, null);
         });
     }
 
@@ -74,7 +128,7 @@ public class NotificationService {
             String content = messageSource.getMessage("notification.pwd_reset.content", null, locale);
             Notification notif = new Notification(user, NotificationType.PASSWORD_RESET, content);
             notif = notificationRepository.save(notif);
-            emailService.sendPasswordResetEmail(user.getEmail(), token, locale, notif.getId());
+            queueEmailNotification(notif.getId(), user.getEmail(), "PASSWORD_RESET", locale.getLanguage(), token, null, null, null, null, null, null, null);
         });
     }
 
@@ -84,7 +138,7 @@ public class NotificationService {
             String content = messageSource.getMessage("notification.pwd_change_otp.content", null, locale);
             Notification notif = new Notification(user, NotificationType.PASSWORD_RESET, content);
             notif = notificationRepository.save(notif);
-            emailService.sendPasswordChangeOtpEmail(user.getEmail(), otpCode, locale, notif.getId());
+            queueEmailNotification(notif.getId(), user.getEmail(), "PASSWORD_CHANGE_OTP", locale.getLanguage(), null, otpCode, null, null, null, null, null, null);
         });
     }
 
@@ -94,8 +148,7 @@ public class NotificationService {
             String content = messageSource.getMessage("notification.order_confirm.content", new Object[]{orderId}, locale);
             Notification notif = new Notification(user, NotificationType.ORDER_CONFIRMATION, content);
             notif = notificationRepository.save(notif);
-            String username = user.getFullName() != null ? user.getFullName() : user.getEmail();
-            emailService.sendOrderConfirmationEmail(user.getEmail(), username, orderId, totalAmount, locale, notif.getId());
+            queueEmailNotification(notif.getId(), user.getEmail(), "ORDER_CONFIRM", locale.getLanguage(), null, null, orderId, totalAmount, null, null, null, null);
         });
     }
 
@@ -105,8 +158,7 @@ public class NotificationService {
             String content = messageSource.getMessage("notification.order_status.content", new Object[]{orderId, status}, locale);
             Notification notif = new Notification(user, NotificationType.ORDER_STATUS_UPDATE, content);
             notif = notificationRepository.save(notif);
-            String username = user.getFullName() != null ? user.getFullName() : user.getEmail();
-            emailService.sendOrderStatusUpdateEmail(user.getEmail(), username, orderId, status, locale, notif.getId());
+            queueEmailNotification(notif.getId(), user.getEmail(), "ORDER_STATUS_UPDATE", locale.getLanguage(), null, null, orderId, null, null, status, null, null);
         });
     }
 
@@ -161,27 +213,20 @@ public class NotificationService {
             sendIfEnabled(admin, NotificationType.SYSTEM_ALERT, () -> {
                 Notification notif = new Notification(admin, NotificationType.SYSTEM_ALERT, content);
                 notif = notificationRepository.save(notif);
-                emailService.sendRawEmailSync(admin.getEmail(), subject, content);
-                notif.setStatus(com.project.notification.entity.NotificationStatus.SENT);
-                notif.setSentAt(LocalDateTime.now());
-                notificationRepository.save(notif);
+                queueEmailNotification(notif.getId(), admin.getEmail(), "RAW_EMAIL", "vi", null, null, null, null, null, null, subject, content);
             });
         }
     }
 
     @Transactional
     public void broadcast(String subject, String content, NotificationType type) {
-        // Lấy tất cả User đang hoạt động
         java.util.List<User> activeUsers = userRepository.findAll();
         
         for (User user : activeUsers) {
             sendIfEnabled(user, type, () -> {
                 Notification notif = new Notification(user, type, content);
                 notif = notificationRepository.save(notif);
-                emailService.sendRawEmailSync(user.getEmail(), subject, content); // Sync for bulk? or Async?? Let's use Sync or custom batch
-                notif.setStatus(com.project.notification.entity.NotificationStatus.SENT);
-                notif.setSentAt(LocalDateTime.now());
-                notificationRepository.save(notif);
+                queueEmailNotification(notif.getId(), user.getEmail(), "RAW_EMAIL", "vi", null, null, null, null, null, null, subject, content);
             });
         }
     }
@@ -251,12 +296,9 @@ public class NotificationService {
                 String fallbackHtml = "<div style=\"font-family: Arial, sans-serif; padding: 20px;\"><h3 style=\"color: #e53935;\">Thông báo quan trọng / Important Notice</h3><p>" 
                         + n.getContent() 
                         + "</p><hr/><p style=\"font-size: 12px; color: #999;\">PCeStore Automated Fallback System</p></div>";
-                emailService.sendRawEmailSync(n.getUser().getEmail(), "PCeStore Notification Fallback", fallbackHtml);
                 
-                n.setStatus(NotificationStatus.SENT);
-                n.setSentAt(LocalDateTime.now());
-                notificationRepository.save(n);
-                logger.info("[AUTO-HEALING] Đã phục hồi và gửi thành công thư ID: {}", n.getId());
+                // Gửi qua RabbitMQ thay vì gửi trực tiếp
+                queueEmailNotification(n.getId(), n.getUser().getEmail(), "RAW_EMAIL", "vi", null, null, null, null, null, null, "PCeStore Notification Fallback", fallbackHtml);
             } catch (Exception e) {
                 logger.error("[AUTO-HEALING] Không thể khôi phục thư ID: {} - Lỗi: {}", n.getId(), e.getMessage());
             }

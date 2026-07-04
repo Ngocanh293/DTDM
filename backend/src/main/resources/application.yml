@@ -13,6 +13,33 @@ spring:
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
+  # Cấu hình Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # Cấu hình RabbitMQ
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 3000ms
+          max-attempts: 3
+          max-interval: 10000ms
+          multiplier: 2.0
+
   # Cấu hình JPA / Hibernate
   jpa:
     open-in-view: false
@@ -53,6 +80,8 @@ application:
 
 # Cấu hình tuỳ chỉnh khác
 custom:
+  serverless:
+    qr-generator-url: ${AWS_LAMBDA_QR_URL:}
   frontend:
     url: ${FRONTEND_URL:${CLIENT_URL:${APP_URL:${NEXT_PUBLIC_BASE_URL:https://pc-e-store.vercel.app}}}}
   mail:

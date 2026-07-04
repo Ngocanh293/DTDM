@@ -1,0 +1,12 @@
+{
+  "name": "qr-generator",
+  "version": "1.0.0",
+  "description": "AWS Lambda Serverless QR Code Generator for PCeStore",
+  "main": "index.js",
+  "scripts": {
+    "zip": "zip -r function.zip index.js node_modules package.json"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.3"
+  }
+}
