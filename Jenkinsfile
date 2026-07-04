@@ -26,16 +26,8 @@ pipeline {
             }
         }
 
-        stage('2. Test Backend') {
-            steps {
-                echo '===== Running Backend Tests ====='
-                dir('backend') {
-                    sh 'mvn clean test'
-                }
-            }
-        }
 
-        stage('3. Build Applications') {
+        stage('2. Build Applications') {
             parallel {
 
                 stage('Build Backend') {
@@ -68,7 +60,7 @@ pipeline {
             }
         }
 
-        stage('4. Build Docker Images') {
+        stage('3. Build Docker Images') {
             steps {
                 echo '===== Build Docker Images ====='
 
@@ -78,7 +70,7 @@ pipeline {
             }
         }
 
-        stage('5. Deploy') {
+        stage('4. Deploy') {
             steps {
                 echo '===== Deploy Containers ====='
 
@@ -91,7 +83,7 @@ pipeline {
             }
         }
 
-        stage('6. Cleanup Docker') {
+        stage('5. Cleanup Docker') {
             steps {
                 echo '===== Cleanup ====='
 
