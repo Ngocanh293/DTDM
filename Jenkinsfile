@@ -3,8 +3,9 @@ pipeline {
 
     tools {
         // Cần được cấu hình tên tương ứng trong "Manage Jenkins -> Global Tool Configuration"
-        maven "maven-3"
-        jdk "jdk-17"
+         jdk "jdk-17"
+	 maven "maven-3"
+	 nodejs "node-22"
     }
 
     options {
@@ -79,7 +80,13 @@ pipeline {
         }
 
         stage('5. Deploy Applications') {
-            steps {
+           steps {
+		echo 'Deploying application...'
+
+		sh 'docker compose down || true'
+		sh 'docker compose up -d --build --scale backend=2'
+	}
+	steps {
                 echo 'Khởi chạy toàn bộ hệ thống bằng Docker Compose...'
                 // Dừng và xóa containers cũ, sau đó start containers mới
                 sh 'docker-compose down'
@@ -89,6 +96,14 @@ pipeline {
         }
     }
 
+	stage('6. Cleanup') {
+	steps {
+	echo 'Cleaning Docker...'
+
+        sh 'docker image prune -f'	
+	sh 'docker container prune -f'
+	}
+	}
     post {
         success {
             echo "Pipeline chạy thành công! Bản build #${BUILD_NUMBER} đã được triển khai."
