@@ -2,10 +2,9 @@ pipeline {
     agent any
 
     tools {
-        // Cần được cấu hình tên tương ứng trong "Manage Jenkins -> Global Tool Configuration"
-         jdk "jdk-17"
-	 maven "maven-3"
-	 nodejs "node-22"
+        jdk "jdk-17"
+        maven "maven-3"
+        nodejs "node-22"
     }
 
     options {
@@ -15,53 +14,52 @@ pipeline {
     }
 
     environment {
-        // Thay thế bằng thông tin Docker Registry của bạn nếu push lên Cloud
-        DOCKER_REGISTRY = "pcestore-registry.local"
         APP_VERSION = "${BUILD_NUMBER}"
     }
 
     stages {
+
         stage('1. Checkout Code') {
             steps {
-                echo 'Đang kéo mã nguồn mới nhất từ kho lưu trữ...'
+                echo '===== Checkout Source Code ====='
                 checkout scm
             }
         }
 
         stage('2. Test Backend') {
             steps {
-                echo 'Bắt đầu chạy kiểm thử (Unit/Integration Tests) cho Spring Boot...'
+                echo '===== Running Backend Tests ====='
                 dir('backend') {
                     sh 'mvn clean test'
                 }
             }
         }
 
-        stage('3. Build Artifacts') {
+        stage('3. Build Applications') {
             parallel {
-                stage('Build Spring Boot Backend') {
+
+                stage('Build Backend') {
                     steps {
-                        echo 'Đóng gói file JAR cho Backend...'
+                        echo '===== Build Backend ====='
                         dir('backend') {
                             sh 'mvn clean package -DskipTests'
                         }
                     }
                 }
-                
+
                 stage('Build API Gateway') {
                     steps {
-                        echo 'Đóng gói file JAR cho API Gateway...'
+                        echo '===== Build API Gateway ====='
                         dir('api-gateway') {
                             sh 'mvn clean package -DskipTests'
                         }
                     }
                 }
 
-                stage('Build React Frontend') {
+                stage('Build Frontend') {
                     steps {
-                        echo 'Cài đặt dependencies và build Production bundle cho React...'
+                        echo '===== Build Frontend ====='
                         dir('frontend') {
-                            // Cài đặt và build frontend
                             sh 'npm install'
                             sh 'npm run build'
                         }
@@ -72,44 +70,53 @@ pipeline {
 
         stage('4. Build Docker Images') {
             steps {
-                echo 'Xây dựng các Docker image từ source-code...'
+                echo '===== Build Docker Images ====='
+
                 sh 'docker build -t pcestore-backend:latest ./backend'
                 sh 'docker build -t pcestore-gateway:latest ./api-gateway'
                 sh 'docker build -t pcestore-frontend:latest ./frontend'
             }
         }
 
-        stage('5. Deploy Applications') {
-           steps {
-		echo 'Deploying application...'
+        stage('5. Deploy') {
+            steps {
+                echo '===== Deploy Containers ====='
 
-		sh 'docker compose down || true'
-		sh 'docker compose up -d --build --scale backend=2'
-	}
-	steps {
-                echo 'Khởi chạy toàn bộ hệ thống bằng Docker Compose...'
-                // Dừng và xóa containers cũ, sau đó start containers mới
-                sh 'docker-compose down'
-                sh 'docker-compose up -d --build'
-                echo 'Hệ thống đã được deploy thành công!'
+                sh '''
+                    docker compose down || true
+                    docker compose up -d --build --scale backend=2
+                '''
+
+                echo '===== Deploy Success ====='
+            }
+        }
+
+        stage('6. Cleanup Docker') {
+            steps {
+                echo '===== Cleanup ====='
+
+                sh 'docker image prune -f'
+                sh 'docker container prune -f'
             }
         }
     }
 
-	stage('6. Cleanup') {
-	steps {
-	echo 'Cleaning Docker...'
-
-        sh 'docker image prune -f'	
-	sh 'docker container prune -f'
-	}
-	}
     post {
+
         success {
-            echo "Pipeline chạy thành công! Bản build #${BUILD_NUMBER} đã được triển khai."
+            echo "======================================="
+            echo "Build #${BUILD_NUMBER} SUCCESS"
+            echo "======================================="
         }
+
         failure {
-            echo "Có lỗi xảy ra trong quá trình chạy Pipeline bản build #${BUILD_NUMBER}. Vui lòng kiểm tra console log."
+            echo "======================================="
+            echo "Build #${BUILD_NUMBER} FAILED"
+            echo "======================================="
+        }
+
+        always {
+            cleanWs()
         }
     }
 }
