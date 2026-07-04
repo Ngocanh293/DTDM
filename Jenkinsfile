@@ -20,10 +20,19 @@ pipeline {
     stages {
 
         stage('1. Checkout Code') {
-            steps {
-                echo '===== Checkout Source Code ====='
-                checkout scm
-            }
+             steps {
+
+        dir('/workspace') {
+
+            sh '''
+                pwd
+                ls -la
+                ls docker
+                ls docker/nginx
+            '''
+        }
+
+    }
         }
 
 
@@ -33,7 +42,7 @@ pipeline {
                 stage('Build Backend') {
                     steps {
                         echo '===== Build Backend ====='
-                        dir('backend') {
+                        dir('/workspace/backend') {
                             sh 'mvn clean package -DskipTests'
                         }
                     }
@@ -42,7 +51,7 @@ pipeline {
                 stage('Build API Gateway') {
                     steps {
                         echo '===== Build API Gateway ====='
-                        dir('api-gateway') {
+                        dir('/workspace/api-gateway') {
                             sh 'mvn clean package -DskipTests'
                         }
                     }
@@ -51,7 +60,7 @@ pipeline {
                 stage('Build Frontend') {
                     steps {
                         echo '===== Build Frontend ====='
-                        dir('frontend') {
+                        dir('/workspace/frontend') {
                             sh 'npm install'
                             sh 'npm run build'
                         }
@@ -64,23 +73,35 @@ pipeline {
             steps {
                 echo '===== Build Docker Images ====='
 
-                sh 'docker build -t pcestore-backend:latest ./backend'
-                sh 'docker build -t pcestore-gateway:latest ./api-gateway'
-                sh 'docker build -t pcestore-frontend:latest ./frontend'
+                sh 'docker build -t pcestore-backend ./backend'
+
+    sh 'docker build -t pcestore-gateway ./api-gateway'
+
+    sh 'docker build -t pcestore-frontend ./frontend'
             }
         }
 
         stage('4. Deploy') {
             steps {
-                echo '===== Deploy Containers ====='
 
-                sh '''
-                    docker compose down || true
-                    docker compose up -d --build --scale backend=2
-                '''
+        dir('/workspace') {
 
-                echo '===== Deploy Success ====='
-            }
+            sh '''
+
+                pwd
+
+                ls
+
+                ls docker/nginx
+
+                docker compose down || true
+
+                docker compose up -d --build --scale backend=2
+
+            '''
+        }
+
+    }
         }
 
         stage('5. Cleanup Docker') {
@@ -108,7 +129,7 @@ pipeline {
         }
 
         always {
-            cleanWs()
+            echo "Pipeline finished"
         }
     }
 }
