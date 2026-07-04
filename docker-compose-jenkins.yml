@@ -1,17 +1,26 @@
-version: '3.8'
+version: "3.8"
 
 services:
   jenkins:
-    image: jenkins/jenkins:lts-jdk17
+    build:
+      context: .
+      dockerfile: docker/jenkins/Dockerfile
+
     container_name: pcestore-jenkins
     privileged: true
     user: root
+
     ports:
-      - "8082:8080"      # Cổng giao diện Jenkins UI
-      - "50000:50000"    # Cổng agent liên kết
+      - "8082:8080"
+      - "50000:50000"
+
     volumes:
       - jenkins_data:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock # Mount Docker Socket của Host để Jenkins chạy lệnh docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/ubuntu/DTDM:/workspace
+
+    working_dir: /workspace
+
     restart: always
 
 volumes:
