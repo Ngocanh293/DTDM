@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
+import { apiUrl } from '../../services/api';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const response = await fetch('https://pcestore.onrender.com/api/auth/register', {
+      const response = await fetch(apiUrl('/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -264,7 +265,7 @@ export default function Register() {
                   setLoading(true);
                   setError('');
                   try {
-                    const response = await fetch('https://pcestore.onrender.com/api/auth/google-login', {
+                    const response = await fetch(apiUrl('/auth/google-login'), {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ idToken: credentialResponse.credential })

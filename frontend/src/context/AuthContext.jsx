@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { apiUrl } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -10,7 +11,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('adminToken') || localStorage.getItem('userToken');
       if (token) {
-        await fetch('https://pcestore.onrender.com/api/auth/logout', {
+        await fetch(apiUrl('/auth/logout'), {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -34,7 +35,7 @@ export const AuthProvider = ({ children }) => {
     
     if (token) {
       setIsLoggedIn(true);
-      fetch('https://pcestore.onrender.com/api/users/profile', {
+      fetch(apiUrl('/users/profile'), {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.ok ? res.json() : (logout(), null))

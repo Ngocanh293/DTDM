@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../../services/api';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -19,7 +20,7 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const response = await fetch('https://pcestore.onrender.com/api/auth/forgot-password', {
+      const response = await fetch(apiUrl('/auth/forgot-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

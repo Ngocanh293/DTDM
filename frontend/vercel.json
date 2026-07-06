@@ -3,21 +3,21 @@
     {
       "src": "/",
       "methods": ["POST"],
-      "dest": "https://pcestore.onrender.com/api/v1/payments/ipn"
+      "dest": "https://api.pcestore.com/api/v1/payments/ipn"
     },
     {
       "src": "/api/sepay/ipn/?",
       "methods": ["POST"],
-      "dest": "https://pcestore.onrender.com/api/v1/payments/ipn"
+      "dest": "https://api.pcestore.com/api/v1/payments/ipn"
     },
     {
       "src": "/api/v1/payments/ipn/?",
       "methods": ["POST"],
-      "dest": "https://pcestore.onrender.com/api/v1/payments/ipn"
+      "dest": "https://api.pcestore.com/api/v1/payments/ipn"
     },
     {
       "src": "/api/(.*)",
-      "dest": "https://pcestore.onrender.com/api/$1"
+      "dest": "https://api.pcestore.com/api/$1"
     },
     {
       "handle": "filesystem"

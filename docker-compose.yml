@@ -1,37 +1,52 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     container_name: pcestore-db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: pcestore
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-pcestore}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - pcestore-network
 
   redis:
     image: redis:7-alpine
     container_name: pcestore-redis
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    command: >
+      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then redis-server --requirepass "$$REDIS_PASSWORD"; else redis-server; fi'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    healthcheck:
+      test: ["CMD-SHELL", "if [ -n \"$${REDIS_PASSWORD}\" ]; then redis-cli -a \"$${REDIS_PASSWORD}\" ping; else redis-cli ping; fi"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - pcestore-network
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: pcestore-rabbitmq
-    ports:
-      - "5672:5672"       # AMQP port
-      - "15672:15672"     # Management UI port
+    restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - pcestore-network
 
@@ -39,22 +54,44 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-      DB_URL: jdbc:postgresql://db:5432/pcestore
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-pcestore}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
-      AWS_LAMBDA_QR_URL: "" # Cấu hình URL AWS Lambda khi deploy thực tế (để trống sẽ tự động fallback sinh QR local)
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:5173,http://127.0.0.1:5173}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@pcestore.com}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      SEPAY_MERCHANT_ID: ${SEPAY_MERCHANT_ID:-sandbox_merchant}
+      SEPAY_SECRET_KEY: ${SEPAY_SECRET_KEY:-sandbox_secret}
+      SEPAY_IPN_SECRET_KEY: ${SEPAY_IPN_SECRET_KEY:-sandbox_secret}
+      SEPAY_API_TOKEN: ${SEPAY_API_TOKEN:-}
+      AWS_LAMBDA_QR_URL: ${AWS_LAMBDA_QR_URL:-}
     depends_on:
-      - db
-      - redis
-      - rabbitmq
-    deploy:
-      replicas: 2 # Scale 2 instances backend
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
     networks:
       - pcestore-network
 
@@ -62,15 +99,17 @@ services:
     build:
       context: ./api-gateway
       dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
+    restart: unless-stopped
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      BACKEND_URI: http://backend:8080 # Docker DNS sẽ tự động Load Balance sang 2 instances backend
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      BACKEND_URI: http://backend:8080
     depends_on:
-      - redis
-      - backend
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
     networks:
       - pcestore-network
 
@@ -78,18 +117,22 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "5173:5173"
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     networks:
       - pcestore-network
 
   nginx:
     image: nginx:alpine
     container_name: pcestore-nginx
+    restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - api-gateway
       - frontend
@@ -98,6 +141,8 @@ services:
 
 volumes:
   postgres_data:
+  rabbitmq_data:
+  uploads_data:
 
 networks:
   pcestore-network:

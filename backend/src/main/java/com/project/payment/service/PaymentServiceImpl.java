@@ -44,7 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final OrderService orderService;
     private final RestTemplate restTemplate = new RestTemplate();
     private static final String PAYMENT_NOT_FOUND_MSG = "Payment not found";
-    private static final String DEFAULT_FRONTEND_URL = "https://pc-e-store.vercel.app";
+    private static final String DEFAULT_FRONTEND_URL = "https://pcestore.com";
     private static final Pattern INVOICE_ORDER_PATTERN = Pattern.compile("^INV-(\\d+)(?:-.+)?$");
     private static final Pattern CUSTOMER_ORDER_PATTERN = Pattern.compile("^CUST-(\\d+)$");
 

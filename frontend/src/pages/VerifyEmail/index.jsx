@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { apiUrl } from '../../services/api';
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
@@ -20,7 +21,7 @@ export default function VerifyEmail() {
 
     const verifyEmail = async () => {
       try {
-        const response = await fetch('https://pcestore.onrender.com/api/auth/verify-email', {
+        const response = await fetch(apiUrl('/auth/verify-email'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
@@ -51,7 +52,7 @@ export default function VerifyEmail() {
     setResendLoading(true);
     setResendMsg('');
     try {
-      const response = await fetch(`https://pcestore.onrender.com/api/auth/resend-verification?email=${encodeURIComponent(resendEmail)}`, {
+      const response = await fetch(apiUrl(`/auth/resend-verification?email=${encodeURIComponent(resendEmail)}`), {
         method: 'POST',
       });
 

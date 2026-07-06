@@ -40,7 +40,7 @@ class PaymentServiceImplTest {
         paymentService = new PaymentServiceImpl(paymentRepository, orderService);
         ReflectionTestUtils.setField(paymentService, "merchantId", "SP-LIVE-TEST");
         ReflectionTestUtils.setField(paymentService, "secretKey", "test-secret");
-        ReflectionTestUtils.setField(paymentService, "frontendUrl", "https://pc-e-store.vercel.app/");
+        ReflectionTestUtils.setField(paymentService, "frontendUrl", "https://pcestore.com/");
     }
 
     @Test
@@ -56,9 +56,9 @@ class PaymentServiceImplTest {
 
         Map<String, String> fields = paymentService.initiateSePayCheckout(7L);
 
-        assertEquals("https://pc-e-store.vercel.app/order-success/42?status=success", fields.get("success_url"));
-        assertEquals("https://pc-e-store.vercel.app/payment/42?status=error", fields.get("error_url"));
-        assertEquals("https://pc-e-store.vercel.app/checkout?status=cancel", fields.get("cancel_url"));
+        assertEquals("https://pcestore.com/order-success/42?status=success", fields.get("success_url"));
+        assertEquals("https://pcestore.com/payment/42?status=error", fields.get("error_url"));
+        assertEquals("https://pcestore.com/checkout?status=cancel", fields.get("cancel_url"));
         assertFalse(fields.get("success_url").contains("localhost"));
         assertNotNull(fields.get("signature"));
     }
@@ -77,9 +77,9 @@ class PaymentServiceImplTest {
 
         Map<String, String> fields = paymentService.initiateSePayCheckout(7L);
 
-        assertEquals("https://pc-e-store.vercel.app/order-success/42?status=success", fields.get("success_url"));
-        assertEquals("https://pc-e-store.vercel.app/payment/42?status=error", fields.get("error_url"));
-        assertEquals("https://pc-e-store.vercel.app/checkout?status=cancel", fields.get("cancel_url"));
+        assertEquals("https://pcestore.com/order-success/42?status=success", fields.get("success_url"));
+        assertEquals("https://pcestore.com/payment/42?status=error", fields.get("error_url"));
+        assertEquals("https://pcestore.com/checkout?status=cancel", fields.get("cancel_url"));
     }
 
     @Test

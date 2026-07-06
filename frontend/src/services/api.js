@@ -1,6 +1,22 @@
 import axios from 'axios';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://pcestore.onrender.com/api').replace(/\/+$/, '');
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
+
+export const API_ORIGIN = (() => {
+  try {
+    return new URL(API_BASE_URL, window.location.origin).origin;
+  } catch {
+    return window.location.origin;
+  }
+})();
+
+export const apiUrl = (path = '') => `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+
+export const assetUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${API_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
+};
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

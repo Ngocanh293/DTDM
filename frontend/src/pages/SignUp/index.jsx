@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { apiUrl } from '../../services/api';
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -31,7 +32,7 @@ export default function SignUp() {
 
     setLoading(true);
     try {
-      const response = await fetch('https://pcestore.onrender.com/api/auth/register', {
+      const response = await fetch(apiUrl('/auth/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

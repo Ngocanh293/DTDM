@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { apiUrl } from '../../services/api';
 import './authModal.css';
 
 export default function AuthModal({ isOpen, onClose, onSuccess }) {
@@ -21,7 +22,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     setLoading(true);
 
     try {
-      const response = await fetch('https://pcestore.onrender.com/api/auth/login', {
+      const response = await fetch(apiUrl('/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

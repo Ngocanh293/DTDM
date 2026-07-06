@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { apiUrl } from '../../services/api';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -29,7 +30,7 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      const response = await fetch('https://pcestore.onrender.com/api/auth/reset-password', {
+      const response = await fetch(apiUrl('/auth/reset-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword: password }),

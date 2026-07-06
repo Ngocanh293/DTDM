@@ -60,6 +60,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 backend/.env
+/.env
+/.env.*
+!/.env.production.example
+*.pem
+*.key
+docker/nginx/certs/
 frontend/discount.js
 
 # =========================
